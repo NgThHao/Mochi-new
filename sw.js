@@ -1,0 +1,50 @@
+const CACHE_NAME = 'mochi-life-v9'; // Tăng phiên bản mỗi lần sửa index.html để máy người dùng nhận bản mới
+const ASSETS_TO_CACHE = [
+  './',
+  './index.html',
+  './manifest.json'
+];
+
+// Cài đặt Service Worker và lưu tài nguyên
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
+  );
+  self.skipWaiting();
+});
+
+// Kích hoạt và dọn dẹp cache cũ
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key); // Tự động xóa sạch các bản cache cũ
+          }
+        })
+      );
+    }).then(() => {
+      return self.clients.claim();
+    })
+  );
+});
+
+// Chạy Offline bằng dữ liệu đã lưu trong Cache
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    })
+  );
+});
+
+// Xử lý sự kiện khi bấm vào thông báo
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.openWindow('./index.html')
+  );
+});
